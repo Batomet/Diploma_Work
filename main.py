@@ -1,63 +1,55 @@
-import cv2
-import mediapipe as mp
+import os
 
+import pandas as pd
+import numpy as np
 
-class HandTracker:
-    def __init__(self, mode=False, maxHands=2, detectionCon=0.5, modelComplexity=1, trackCon=0.5):
-        self.mode = mode
-        self.maxHands = maxHands
-        self.detectionCon = detectionCon
-        self.modelComplex = modelComplexity
-        self.trackCon = trackCon
-        self.mpHands = mp.solutions.hands
-        self.hands = self.mpHands.Hands(self.mode, self.maxHands, self.modelComplex, self.detectionCon, self.trackCon)
-        self.mpDraw = mp.solutions.drawing_utils
+bvh_dir = "DataPreparation/data"
 
-    def hands_finder(self, image, draw=True):
-        imageRGB = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        self.result = self.hands.process(imageRGB)
+emotion_mapping = {
+    'A': 'Angry',
+    'D': 'Disgust',
+    'F': 'Fearful',
+    'H': 'Happy',
+    'N': 'Neutral',
+    'SA': 'Sad',
+    'SU': 'Surprise',
+}
 
-        if self.result.multi_hand_landmarks:
-            for handLms in self.result.multi_hand_landmarks:
-                if draw:
-                    self.mpDraw.draw_landmarks(image, handLms, self.mpHands.HAND_CONNECTIONS)
-        return image
+features = []
+labels = []
 
-    def position_finder(self, image, handNo=0, draw=True):
-        lmlist = []
-        if self.result.multi_hand_landmarks:
-            Hand = self.result.multi_hand_landmarks[handNo]
-            for id, lm in enumerate(Hand.landmark):
-                h, w, c = image.shape
-                cx, cy = int(lm.x * w), int(lm.y * h)
-                lmlist.append([id, cx, cy])
-                if draw:
-                    cv2.circle(image, (cx, cy), 15, (255, 0, 255), cv2.FILLED)
-        return lmlist
+for filename in os.listdir(bvh_dir):
+    if filename.endswith('.csv'):
+        file_path = os.path.join(bvh_dir, filename)
+        df = pd.read_csv(file_path)
+        print(f"Shape of DataFrame '{filename}': {df.shape}")
 
+        features.append(df.values)
 
-def main():
-    cap = cv2.VideoCapture(0)
-    tracker = HandTracker()
+        if len(filename) >= 6 and filename[3:5].isalpha():
+            emotion_code = filename[3:5]
+        elif len(filename) >= 5 and filename[3].isalpha():
+            emotion_code = filename[3]
+        else:
+            emotion_code = 'Unknown'
+        if emotion_code == 'A':
+            emotion = emotion_mapping.get('A', 'Unknown')
+        elif emotion_code == 'D':
+            emotion = emotion_mapping.get('D', 'Unknown')
+        elif emotion_code == 'F':
+            emotion = emotion_mapping.get('F', 'Unknown')
+        elif emotion_code == 'H':
+            emotion = emotion_mapping.get('H', 'Unknown')
+        elif emotion_code == 'N':
+            emotion = emotion_mapping.get('N', 'Unknown')
+        elif emotion_code == 'SA':
+            emotion = emotion_mapping.get('SA', 'Unknown')
+        elif emotion_code == 'SU':
+            emotion = emotion_mapping.get('SU', 'Unknown')
+        else:
+            emotion = 'Unknown'
 
-    while True:
-        success, image = cap.read()
-        if not success:
-            break
+        labels.append(emotion)
 
-        image = tracker.hands_finder(image)
-        lmList = tracker.position_finder(image)
-        if len(lmList) != 0:
-            print(lmList[4])
-
-        cv2.imshow("video", image)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    cap.release()
-    cv2.destroyAllWindows()
-
-
-if __name__ == '__main__':
-    main()
+print(features)
+print(labels)
