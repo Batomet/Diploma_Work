@@ -1,62 +1,113 @@
+import glob
+
+import cv2
 import numpy as np
 import pandas as pd
-from matplotlib.colors import ListedColormap
-import matplotlib.pyplot as plt
-
-
-from sklearn.metrics import confusion_matrix, accuracy_score
+import tensorflow as tf
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from tensorflow.keras.layers import Dense, Dropout, Conv2D, MaxPooling2D, Flatten
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.utils import to_categorical
 
-ds = pd.read_csv('DataPreparation/data/M11SU5V1_worldpos_right_hand_all_hands.csv')
+# if tf.test.gpu_device_name():
+#     print("Default GPU Device:", tf.test.gpu_device_name())
+# else:
+#     print("GPU not found. Using CPU.")
+#
+# file_path = 'D:/ML/Diploma_work/DataPreparation/merged_data.csv'
+#
+# all_features = []
+# all_labels = []
+#
+# scaler = StandardScaler()
+#
+# chunk_size = 21 * 10
+# for chunk in pd.read_csv(file_path, chunksize=chunk_size):
+#     num_samples = len(chunk) // 21
+#     reshaped_chunk = chunk.values.reshape(num_samples, 21, -1)
+#     X_chunk = reshaped_chunk[:, :, :-1].reshape(num_samples, -1)
+#     y_chunk = reshaped_chunk[:, 0, -1]
+#     all_features.append(X_chunk)
+#     all_labels.append(y_chunk)
+#
+# all_features = np.vstack(all_features)
+# all_features_scaled = scaler.fit_transform(all_features)
+#
+# label_encoder = LabelEncoder()
+# all_labels_encoded = label_encoder.fit_transform(np.concatenate(all_labels))
+# num_emotions = len(np.unique(all_labels_encoded))
+# all_labels_categorical = tf.keras.utils.to_categorical(all_labels_encoded, num_classes=num_emotions)
+#
+# X_train, X_test, y_train, y_test = train_test_split(all_features_scaled, all_labels_categorical, test_size=0.2,
+#                                                     random_state=42)
+#
+# model = Sequential([
+#     Dense(512, activation='relu', input_shape=(X_train.shape[1],)),
+#     Dropout(0.5),
+#     Dense(256, activation='relu'),
+#     Dropout(0.5),
+#     Dense(128, activation='relu'),
+#     Dropout(0.5),
+#     Dense(64, activation='relu'),
+#     Dense(num_emotions, activation='softmax')
+# ])
+#
+# model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+#
+# model.fit(X_train, y_train, epochs=10, batch_size=32, validation_split=0.2)
+#
+# model.save('D:/ML/Diploma_work/Models/HandLandmarksModelDNN')
+#
+# test_loss, test_accuracy_DNN = model.evaluate(X_test, y_test)
+# print("Test DNN Accuracy :", test_accuracy_DNN)
+#
+img_size = (128, 128)  # Example size, can be adjusted
+num_emotions = 6  # Number of classes
 
-X = ds.iloc[:, :-1].values
-y = ds.iloc[:, -1].values
+# Load images and labels
+images = []
+labels = []
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
-sc = StandardScaler()
+for img_path in glob.glob('D:/ML/Diploma_work/DataPreparation/heatmaps/*.png'):
+    img = cv2.imread(img_path)
+    img = cv2.resize(img, img_size)
 
-X_train = sc.fit_transform(X_train)
-X_test = sc.transform(X_test)
+    img = img / 255.0
 
-classifier = DecisionTreeClassifier(criterion='entropy', random_state=0)
-classifier.fit(X_train, y_train)
+    label = img_path.split('_')[-2]
 
-y_pred = classifier.predict(X_test)
+    images.append(img)
+    labels.append(label)
 
-cm = confusion_matrix(y_test, y_pred)
-print(cm)
-print(accuracy_score(y_test, y_pred))
+images = np.array(images)
+labels = np.array(labels)
+print(images.shape)
+print(labels.shape)
+print(np.unique(labels))
 
-X_set, y_set = sc.inverse_transform(X_train), y_train
-X1, X2 = np.meshgrid(np.arange(start=X_set[:, 0].min() - 10, stop=X_set[:, 0].max() + 10, step=0.25),
-                     np.arange(start=X_set[:, 1].min() - 1000, stop=X_set[:, 1].max() + 1000, step=0.25))
-plt.contourf(X1, X2, classifier.predict(sc.transform(np.array([X1.ravel(), X2.ravel()]).T)).reshape(X1.shape),
-             alpha=0.75, cmap=ListedColormap(('red', 'green', 'blue', 'yellow', 'orange', 'purple', 'pink')))
-plt.xlim(X1.min(), X1.max())
-plt.ylim(X2.min(), X2.max())
-for i, j in enumerate(np.unique(y_set)):
-    plt.scatter(X_set[y_set == j, 0], X_set[y_set == j, 1],
-                c=ListedColormap(('red', 'green', 'blue', 'yellow', 'orange', 'purple', 'pink'))(i), label=j)
-plt.title('Logistic Regression (Train set)')
-plt.xlabel('Hand position')
-plt.ylabel('Emotion')
-plt.legend()
-plt.show()
+label_encoder = LabelEncoder()
+integer_encoded = label_encoder.fit_transform(labels)
+one_hot_encoded = to_categorical(integer_encoded, num_classes=num_emotions)
 
-X_set, y_set = sc.inverse_transform(X_test), y_test
-X1, X2 = np.meshgrid(np.arange(start=X_set[:, 0].min() - 10, stop=X_set[:, 0].max() + 10, step=0.25),
-                     np.arange(start=X_set[:, 1].min() - 1000, stop=X_set[:, 1].max() + 1000, step=0.25))
-plt.contourf(X1, X2, classifier.predict(sc.transform(np.array([X1.ravel(), X2.ravel()]).T)).reshape(X1.shape),
-             alpha=0.75, cmap=ListedColormap(('red', 'green', 'blue', 'yellow', 'orange', 'purple', 'pink')))
-plt.xlim(X1.min(), X1.max())
-plt.ylim(X2.min(), X2.max())
-for i, j in enumerate(np.unique(y_set)):
-    plt.scatter(X_set[y_set == j, 0], X_set[y_set == j, 1],
-                c=ListedColormap(('red', 'green', 'blue', 'yellow', 'orange', 'purple', 'pink'))(i), label=j)
-plt.title('Logistic Regression (Test set)')
-plt.xlabel('Hand position')
-plt.ylabel('Emotion')
-plt.legend()
-plt.show()
+X_train, X_test, y_train, y_test = train_test_split(images, one_hot_encoded, test_size=0.2, random_state=42)
+
+model = Sequential([
+    Conv2D(32, (3, 3), activation='relu', input_shape=(img_size[0], img_size[1], 3)),
+    MaxPooling2D(2, 2),
+    Conv2D(64, (3, 3), activation='relu'),
+    MaxPooling2D(2, 2),
+    Flatten(),
+    Dense(128, activation='relu'),
+    Dense(num_emotions, activation='softmax')
+])
+
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+model.fit(X_train, y_train, batch_size=32, epochs=10, validation_data=(X_test, y_test))
+
+test_loss, test_accuracy_CNN = model.evaluate(X_test, y_test)
+print("Test  CNN accuracy:", test_accuracy_CNN)
+# print("Test DNN Accuracy :", test_accuracy_DNN)
+
+model.save('D:/ML/Diploma_work/Models/HandLandmarksModelCNN')
