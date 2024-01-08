@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 
+#
 def transform_to_mediapipe_format(row, mapping):
     return [[idx, row[f"{column}.X"], row[f"{column}.Y"]] for column, idx in mapping.items()]
 
@@ -18,8 +19,8 @@ def transform_and_save_dataset(file_path, output_path, left_mapping, right_mappi
     flattened_data.to_csv(output_path, index=False)
 
 
-bvh_dir = "/BVH"
-csv_dir = "/DataPreparation/data"
+bvh_dir = "E:/Datasety/kinematic-dataset-of-actors-expressing-emotions-2.1.0/BVH"
+csv_dir = "D:/ML/Diploma_work/DataPreparation/data"
 os.makedirs(csv_dir, exist_ok=True)
 
 left_hand_mapping = {
@@ -156,7 +157,7 @@ for file in file_list:
 merged_data.to_csv('merged_data.csv', index=False)
 print("done")
 
-data = pd.read_csv('/DataPreparation/merged_data.csv')
+data = pd.read_csv('D:/ML/Diploma_work/DataPreparation/merged_data.csv')
 
 sampled_data = data.sample(frac=0.05, random_state=42)
 
@@ -165,10 +166,10 @@ stratified_sample = data.groupby('Emotion', group_keys=False).apply(lambda x: x.
 sampled_data.to_csv('sampled_data.csv', index=False)
 
 # Load the data
-data = pd.read_csv('/DataPreparation/merged_data.csv')
+data = pd.read_csv('D:\ML\Diploma_work\DataPreparation\merged_data.csv')
 
 # Create a directory to save the heatmaps
-save_dir = 'heatmaps'
+save_dir = 'E:/Datasety/heatmaps'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
